@@ -1,0 +1,5 @@
+services:
+  crossref_api_client:
+    class: Drupal\crossref_api_client\Client
+    arguments: ['@http_client_factory', '@messenger']
+
