@@ -98,6 +98,9 @@ class Client {
     if ($email = $this->config->get('email')) {
       $options['query']['mailto'] = $email;
     }
+    if ($token = $this->config->get('token')) {
+      $options['headers']['Crossref-Plus-API-Token'] = 'Bearer ' . $token;
+    }
 
     $response = $this->guzzleClient->get($request_path, $options);
     $body = $response->getBody()->getContents();

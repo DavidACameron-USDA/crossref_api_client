@@ -6,4 +6,7 @@ crossref_api_client.settings:
     email:
       type: email
       label: 'Contact Email'
+    token:
+      type: string
+      label: 'Plus service API token'
 

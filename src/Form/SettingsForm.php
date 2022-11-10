@@ -34,6 +34,12 @@ class SettingsForm extends ConfigFormBase {
       '#description' => $this->t('Email addresses will be added to each API query in a mailto parameter. By doing this Crossref will direct your requests to a special pool of servers reserved for "polite" users. Crossref will contact this address in the event that they need to communicate about problems with use of the API. So this email address should be monitored. See the <a href=":url">API documentation</a> for more information.', [':url' => 'https://api.crossref.org/swagger-ui/index.html']),
       '#default_value' => $this->config('crossref_api_client.settings')->get('email'),
     ];
+    $form['token'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Plus service API token'),
+      '#description' => $this->t("If you have signed up for Crossref's Plus service, then you will be issued an API authorization token which you can enter here. If you want to keep the token out of your site's configuration, for instance if your site's configuration is hosted publicly on GitHub, then it is recommended to enter a fake value here and then override it in your site's settings.php file."),
+      '#maxlength' => 250,
+    ];
     return parent::buildForm($form, $form_state);
   }
 
@@ -43,6 +49,7 @@ class SettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('crossref_api_client.settings')
       ->set('email', $form_state->getValue('email'))
+      ->set('token', $form_state->getValue('token'))
       ->save();
     parent::submitForm($form, $form_state);
   }
