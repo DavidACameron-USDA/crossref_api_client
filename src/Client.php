@@ -2,11 +2,13 @@
 
 namespace Drupal\crossref_api_client;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\Messenger\Messenger;
 use GuzzleHttp\Exception\ClientException;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Provides methods for connecting to the Crossref API.
@@ -69,6 +71,8 @@ class Client {
    *
    * Responses are cached for one day.
    *
+   * @param string $method
+   *   The HTTP method of the request.
    * @param string $ndpoint
    *   The endpoint path to be queried. The endpoint should be written exactly
    *   as shown in the API documentation, for example '/works/{doi}', including
@@ -78,19 +82,22 @@ class Client {
    *   exactly match the string to be replaced in the path, for example if the
    *   path is "/works/{doi}", then the $parameters array should contain
    *   "['{doi}' => $doi]".
+   * @param string[] $extra_options
+   *   Additional options to be added to the request.
    *
-   * @return string
-   *   The body of the response.
+   * @return Psr\Http\Message\ResponseInterface
+   *   The response to the request.
    *
    * @throws GuzzleHttp\Exception\TransferException
    */
-  protected function request(string $endpoint, $parameters = []) {
+  protected function request(string $method, string $endpoint, $parameters = [], $extra_options = []): ResponseInterface {
     foreach ($parameters as $key => $param) {
       $parameters[$key] = urlencode($param);
     }
     $request_path = strtr($endpoint, $parameters);
+    $cid = $method . ':' . $request_path;
 
-    if ($cache = $this->cache->get($request_path)) {
+    if ($cache = $this->cache->get($cid)) {
       return $cache->data;
     }
 
@@ -101,15 +108,17 @@ class Client {
     if ($token = $this->config->get('token')) {
       $options['headers']['Crossref-Plus-API-Token'] = 'Bearer ' . $token;
     }
+    $options = NestedArray::mergeDeep($options, $extra_options);
 
-    $response = $this->guzzleClient->get($request_path, $options);
-    $body = $response->getBody()->getContents();
-    $this->cache->set($request_path, $body, time() + 86400);
-    return $body;
+    $response = $this->guzzleClient->request($method, $request_path, $options);
+    $this->cache->set($cid, $response, time() + 86400);
+    return $response;
   }
 
   /**
-   * Makes a request to the /works/{doi} endpoint.
+   * Requests data for a DOI.
+   *
+   * Makes a GET request to the /works/{doi} endpoint.
    *
    * @param string $doi
    *   The DOI to be queried.
@@ -122,13 +131,13 @@ class Client {
    */
   public function worksDoi(string $doi) {
     try {
-      $response = $this->request('/works/{doi}', ['{doi}' => $doi]);
+      $response = $this->request('GET', '/works/{doi}', ['{doi}' => $doi]);
     }
     catch (ClientException $e) {
       $this->messenger->addWarning('The requested DOI could not be found in Crossref.');
       throw $e;
     }
-    return json_decode($response);
+    return json_decode($response->getBody()->getContents());
   }
 
 }
