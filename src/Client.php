@@ -3,6 +3,7 @@
 namespace Drupal\crossref_api_client;
 
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\Messenger\Messenger;
 use GuzzleHttp\Exception\ClientException;
@@ -23,6 +24,11 @@ class Client {
   protected $guzzleClient;
 
   /**
+   * @var \Drupal\Core\Config\ImmutableConfig $config
+   */
+  protected $config;
+
+  /**
    * @var \Drupal\Core\Cache\CacheBackendInterface $cache
    */
   protected $cache;
@@ -37,13 +43,16 @@ class Client {
    *
    * @param \Drupal\Core\Http\ClientFactory $client_factory
    *   The Guzzle HTTP Client factory service.
+   * @param \Drupal\Core\Config\ConfigFactory $config_factory
+   *   The config.factory service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache.crossref_responses cache bin.
    * @param \Drupal\Core\Messenger\Messenger $messenger
    *   The Drupal messenger service.
    */
-  public function __construct(ClientFactory $client_factory, CacheBackendInterface $cache, Messenger $messenger) {
+  public function __construct(ClientFactory $client_factory, ConfigFactory $config_factory, CacheBackendInterface $cache, Messenger $messenger) {
     $this->guzzleClient = $client_factory->fromOptions(['base_uri' => self::BASE_URI]);
+    $this->config = $config_factory->get('crossref_api_client.settings');
     $this->cache = $cache;
     $this->messenger = $messenger;
   }
@@ -85,7 +94,12 @@ class Client {
       return $cache->data;
     }
 
-    $response = $this->guzzleClient->get($request_path);
+    $options = [];
+    if ($email = $this->config->get('email')) {
+      $options['query']['mailto'] = $email;
+    }
+
+    $response = $this->guzzleClient->get($request_path, $options);
     $body = $response->getBody()->getContents();
     $this->cache->set($request_path, $body, time() + 86400);
     return $body;

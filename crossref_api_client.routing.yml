@@ -1,0 +1,8 @@
+crossref_api_client.settings_form:
+  path: '/admin/config/system/crossref-api-client'
+  defaults:
+    _title: 'Crossref API Client settings'
+    _form: 'Drupal\crossref_api_client\Form\SettingsForm'
+  requirements:
+    _permission: 'administer site configuration'
+

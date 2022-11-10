@@ -1,0 +1,7 @@
+crossref_api_client.settings_form:
+  title: 'Crossref API Client'
+  description: 'Configure Crossref API Client.'
+  parent: system.admin_config_system
+  route_name: crossref_api_client.settings_form
+  weight: 10
+
