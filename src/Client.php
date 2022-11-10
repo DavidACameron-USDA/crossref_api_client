@@ -2,6 +2,7 @@
 
 namespace Drupal\crossref_api_client;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\Messenger\Messenger;
 use GuzzleHttp\Exception\ClientException;
@@ -22,6 +23,11 @@ class Client {
   protected $guzzleClient;
 
   /**
+   * @var \Drupal\Core\Cache\CacheBackendInterface $cache
+   */
+  protected $cache;
+
+  /**
    * @var \Drupal\Core\Messenger\Messenger $messenger
    */
   protected $messenger;
@@ -31,23 +37,33 @@ class Client {
    *
    * @param \Drupal\Core\Http\ClientFactory $client_factory
    *   The Guzzle HTTP Client factory service.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache.crossref_responses cache bin.
    * @param \Drupal\Core\Messenger\Messenger $messenger
    *   The Drupal messenger service.
    */
-  public function __construct(ClientFactory $client_factory, Messenger $messenger) {
+  public function __construct(ClientFactory $client_factory, CacheBackendInterface $cache, Messenger $messenger) {
     $this->guzzleClient = $client_factory->fromOptions(['base_uri' => self::BASE_URI]);
+    $this->cache = $cache;
     $this->messenger = $messenger;
   }
 
   /**
    * Sends a request to the API.
    *
+   * Crossref recommends that all parameters be URL-encoded, especially DOIs
+   * which frequently have invalid characters. All values in the $parameters
+   * array will be URL-encoded. Calling functions should allow this method to
+   * replace parameters in the endpoint path rather than doing it themselves.
+   * This way parameters can be URL-encoded or have other transformations
+   * performed on them.
+   *
+   * Responses are cached for one day.
+   *
    * @param string $ndpoint
    *   The endpoint path to be queried. The endpoint should be written exactly
    *   as shown in the API documentation, for example '/works/{doi}', including
-   *   a leading slash. Calling functions should not replace parameters in the
-   *   path so that they can be URL-encoded or have other transformations
-   *   performed on them.
+   *   a leading slash.
    * @param string[] $parameters
    *   An array of parameters to be replaced in the path. Array keys should
    *   exactly match the string to be replaced in the path, for example if the
@@ -60,14 +76,19 @@ class Client {
    * @throws GuzzleHttp\Exception\TransferException
    */
   protected function request(string $endpoint, $parameters = []) {
-    // Crossref recommends that all parameters be URL-encoded, especially DOIs
-    // which frequently have invalid characters.
     foreach ($parameters as $key => $param) {
       $parameters[$key] = urlencode($param);
     }
     $request_path = strtr($endpoint, $parameters);
+
+    if ($cache = $this->cache->get($request_path)) {
+      return $cache->data;
+    }
+
     $response = $this->guzzleClient->get($request_path);
-    return $response->getBody()->getContents();
+    $body = $response->getBody()->getContents();
+    $this->cache->set($request_path, $body, time() + 86400);
+    return $body;
   }
 
   /**
