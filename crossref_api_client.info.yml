@@ -3,4 +3,5 @@ type: module
 description: Provides connection classes to the Crossref API
 package: Other
 core_version_requirement: ^9 || ^10
+configure: crossref_api_client.settings_form
 
