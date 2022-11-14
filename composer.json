@@ -1,0 +1,14 @@
+{
+    "name": "dcameron/crossref_api_client",
+    "type": "drupal-module",
+    "description": "A Drupal module for connecting to the Crossref REST API",
+    "authors": [
+        {
+            "name": "David Cameron (dcam)",
+            "homepage": "https://www.drupal.org/u/dcam",
+            "role": "Maintainer"
+        }
+    ],
+    "homepage": "https://github.com/dcameron/crossref_api_client"
+}
+
