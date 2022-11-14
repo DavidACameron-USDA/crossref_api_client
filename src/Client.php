@@ -218,14 +218,15 @@ class Client {
     $log_message = 'This is debugging information releated to a Crossref API request.<br>
       Request URI: @uri<br>
       Request Method: @method<br>
-      Transfer Time: @transfer_time<br>';
+      Transfer Time: @transfer_time';
     $replacements = [
       '@uri' => $stats->getEffectiveUri(),
       '@method' => $stats->getRequest()->getMethod(),
       '@transfer_time' => $stats->getTransferTime(),
     ];
     if ($response = $stats->getResponse()) {
-      $log_message .= 'Response Status Code: @status_code<br>
+      $log_message .= '<br>
+        Response Status Code: @status_code<br>
         Response Reason: @reason<br>
         API pool that served the request: @api_pool';
       $replacements += [
