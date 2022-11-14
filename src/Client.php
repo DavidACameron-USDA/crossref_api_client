@@ -181,6 +181,36 @@ class Client {
   }
 
   /**
+   * Checks to see if a DOI exists in Crossref.
+   *
+   * Performs a HEAD request to the /works/{doi} endpoint. A 200-status
+   * response indicates that the DOI exists.  A 404-response indicates that the
+   * DOI does not exist.
+   *
+   * @param string $doi
+   *   The DOI to be queried.
+   *
+   * @return bool
+   *   Returns TRUE if the DOI exists or FALSE if the DOI does not exist.
+   *
+   * @throws \GuzzleHttp\Exception\TransferException
+   *   Re-throws the Guzzle exception so that calling code can react to it,
+   *   except for 404-status ClientExceptions which are valid responses.
+   */
+  public function worksDoiExists(string $doi) {
+    try {
+      $response = $this->request('HEAD', '/works/{doi}', ['{doi}' => $doi]);
+    }
+    catch (ClientException $e) {
+      if ($response->getStatusCode() == 404) {
+        return FALSE;
+      }
+      throw $e;
+    }
+    return TRUE;
+  }
+
+  /**
    * Logs data about requests and responses.
    *
    * @param \GuzzleHttp\TransferStats $stats
