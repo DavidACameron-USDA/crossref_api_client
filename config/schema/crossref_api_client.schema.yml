@@ -9,4 +9,7 @@ crossref_api_client.settings:
     token:
       type: string
       label: 'Plus service API token'
+    debug:
+      type: boolean
+      label: 'Log debugging info'
 

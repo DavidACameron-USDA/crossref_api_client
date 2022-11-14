@@ -11,6 +11,7 @@ use Drupal\Core\Messenger\Messenger;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\ServerException;
+use GuzzleHttp\TransferStats;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
@@ -120,6 +121,9 @@ class Client {
     if ($token = $this->config->get('token')) {
       $options['headers']['Crossref-Plus-API-Token'] = 'Bearer ' . $token;
     }
+    if ($this->config->get('debug')) {
+      $options['on_stats'] = [__CLASS__, 'onStats'];
+    }
     $options = NestedArray::mergeDeep($options, $extra_options);
 
     try {
@@ -174,6 +178,33 @@ class Client {
       throw $e;
     }
     return json_decode($response->getBody()->getContents());
+  }
+
+  /**
+   * Logs data about requests and responses.
+   *
+   * @param \GuzzleHttp\TransferStats $stats
+   *   The transfer statistics of the request.
+   */
+  public static function onStats(TransferStats $stats) {
+    $log_message = 'This is debugging information releated to a Crossref API request.<br>
+      Request URI: @uri<br>
+      Request Method: @method<br>
+      Transfer Time: @transfer_time<br>';
+    $replacements = [
+      '@uri' => $stats->getEffectiveUri(),
+      '@method' => $stats->getRequest()->getMethod(),
+      '@transfer_time' => $stats->getTransferTime(),
+    ];
+    if ($response = $stats->getResponse()) {
+      $log_message .= 'Response Status Code: @status_code<br>
+        Response Reason: @reason';
+      $replacements += [
+        '@status_code' => $response->getStatusCode(),
+        '@reason' => $response->getReasonPhrase(),
+      ];
+    }
+    \Drupal::logger('crossref_api_client')->debug($log_message, $replacements);
   }
 
 }

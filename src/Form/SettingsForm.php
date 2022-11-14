@@ -40,6 +40,12 @@ class SettingsForm extends ConfigFormBase {
       '#description' => $this->t("If you have signed up for Crossref's Plus service, then you will be issued an API authorization token which you can enter here. If you want to keep the token out of your site's configuration, for instance if your site's configuration is hosted publicly on GitHub, then it is recommended to enter a fake value here and then override it in your site's settings.php file."),
       '#maxlength' => 250,
     ];
+    $form['debug'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Log request metadata for debugging'),
+      '#description' => $this->t('It is recommended to turn this setting off in production unless you are experiencing problems.'),
+      '#default_value' => $this->config('crossref_api_client.settings')->get('debug'),
+    ];
     return parent::buildForm($form, $form_state);
   }
 
@@ -50,6 +56,7 @@ class SettingsForm extends ConfigFormBase {
     $this->config('crossref_api_client.settings')
       ->set('email', $form_state->getValue('email'))
       ->set('token', $form_state->getValue('token'))
+      ->set('debug', $form_state->getValue('debug'))
       ->save();
     parent::submitForm($form, $form_state);
   }
