@@ -79,8 +79,6 @@ class Client {
    * which frequently have invalid characters. All values in the $parameters
    * array will be URL-encoded. Calling functions should allow this method to
    * replace parameters in the endpoint path rather than doing it themselves.
-   * This way parameters can be URL-encoded or have other transformations
-   * performed on them.
    *
    * Responses are cached for one day.
    *
