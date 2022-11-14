@@ -228,10 +228,12 @@ class Client {
     ];
     if ($response = $stats->getResponse()) {
       $log_message .= 'Response Status Code: @status_code<br>
-        Response Reason: @reason';
+        Response Reason: @reason<br>
+        API pool that served the request: @api_pool';
       $replacements += [
         '@status_code' => $response->getStatusCode(),
         '@reason' => $response->getReasonPhrase(),
+        '@api_pool' => implode(', ', $response->getHeader('x-api-pool')),
       ];
     }
     \Drupal::logger('crossref_api_client')->debug($log_message, $replacements);
