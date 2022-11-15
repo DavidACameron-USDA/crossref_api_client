@@ -8,10 +8,14 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Http\ClientFactory;
 use Drupal\Core\Messenger\Messenger;
+use Drupal\guzzle_cache\DrupalGuzzleCache;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\ServerException;
+use GuzzleHttp\HandlerStack;
 use GuzzleHttp\TransferStats;
+use Kevinrob\GuzzleCache\CacheMiddleware;
+use Kevinrob\GuzzleCache\Strategy\GreedyCacheStrategy;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
@@ -24,6 +28,11 @@ class Client {
    * The base URI of the Crossref API.
    */
   const BASE_URI = 'https://api.crossref.org';
+
+  /**
+   * The cache TTL passed to the cache middleware.
+   */
+  const CACHE_TTL = 86400;
 
   /**
    * @var \Guzzlehttp\Client $guzzleClient
@@ -65,7 +74,14 @@ class Client {
    *   The logger.channel.crossref_api_client service.
    */
   public function __construct(ClientFactory $client_factory, ConfigFactory $config_factory, CacheBackendInterface $cache, Messenger $messenger, LoggerInterface $logger) {
-    $this->guzzleClient = $client_factory->fromOptions(['base_uri' => self::BASE_URI]);
+    $stack = HandlerStack::create();
+    // The GreedyCacheStrategy is used here because Crossref does not send
+    // Cache-Control headers. So we have to specify our own TTL.
+    $stack->push(new CacheMiddleware(new GreedyCacheStrategy(new DrupalGuzzleCache($cache), self::CACHE_TTL)), 'cache');
+    $this->guzzleClient = $client_factory->fromOptions([
+      'base_uri' => self::BASE_URI,
+      'handler' => $stack,
+    ]);
     $this->config = $config_factory->get('crossref_api_client.settings');
     $this->cache = $cache;
     $this->messenger = $messenger;
@@ -106,11 +122,6 @@ class Client {
       $parameters[$key] = urlencode($param);
     }
     $request_path = strtr($endpoint, $parameters);
-    $cid = $method . ':' . $request_path;
-
-    if ($cache = $this->cache->get($cid)) {
-      return $cache->data;
-    }
 
     $options = [];
     if ($email = $this->config->get('email')) {
@@ -146,7 +157,7 @@ class Client {
         ]);
       throw $e;
     }
-    $this->cache->set($cid, $response, time() + 86400);
+
     return $response;
   }
 

@@ -9,6 +9,9 @@
             "role": "Maintainer"
         }
     ],
-    "homepage": "https://github.com/dcameron/crossref_api_client"
+    "homepage": "https://github.com/dcameron/crossref_api_client",
+    "require": {
+        "drupal/guzzle_cache": "^3.0"
+    }
 }
 
