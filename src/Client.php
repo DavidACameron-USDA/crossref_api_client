@@ -211,6 +211,7 @@ class Client {
       $response = $this->request('HEAD', '/works/{doi}', ['{doi}' => $doi]);
     }
     catch (ClientException $e) {
+      $response = $e->getResponse();
       if ($response->getStatusCode() == 404) {
         return FALSE;
       }
